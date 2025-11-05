@@ -43,7 +43,7 @@ try {
   console.log('📦 Kopiere Template-Dateien...');
 
   // Kopiere alle Template-Dateien
-  const templatePath = path.join(__dirname, '..');
+  const templatePath = __dirname;
   const filesToCopy = [
     'src',
     'public',
@@ -82,8 +82,10 @@ try {
       try {
         const stat = fs.statSync(srcPath);
         if (stat.isDirectory()) {
+          console.log(`  📁 Kopiere ${file}/`);
           copyRecursive(srcPath, destPath);
         } else {
+          console.log(`  📄 Kopiere ${file}`);
           // Stelle sicher, dass das Zielverzeichnis existiert
           const destDir = path.dirname(destPath);
           if (!fs.existsSync(destDir)) {
@@ -94,6 +96,8 @@ try {
       } catch (error) {
         console.warn(`⚠️  Überspringe ${file}: ${error.message}`);
       }
+    } else {
+      console.warn(`⚠️  ${file} nicht gefunden`);
     }
   });
 

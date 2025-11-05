@@ -41,7 +41,7 @@ jobs:
 
       - name: Setup Environment
         run: |
-          echo "DATABASE_URL=mongodb://placeholder:27017/placeholder" >> $GITHUB_ENV
+          echo "DATABASE_URL=mongodb://localhost:27017/test" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: npm ci

@@ -56,7 +56,8 @@ try {
     'eslint.config.mjs',
     '.gitignore',
     'README.md',
-    '.env.example'
+    '.env.example',
+    '.gitignore'
   ];
 
   function copyRecursive(src, dest) {

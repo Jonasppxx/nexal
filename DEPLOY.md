@@ -20,24 +20,16 @@ Du hast jetzt **2 GitHub Actions Workflows**:
 
 ## 📋 Setup-Schritte
 
-### Schritt 1: npm Access Token erstellen
+### ✅ Schritt 1: npm Trusted Publisher eingerichtet
 
-1. Gehe zu https://www.npmjs.com/
-2. Klicke auf dein Profil → **Access Tokens**
-3. Klicke **Generate New Token** → **Classic Token**
-4. Wähle **Automation** (für CI/CD)
-5. Kopiere den Token (wird nur einmal angezeigt!)
+**Du hast bereits Trusted Publishers eingerichtet - PERFEKT!** 🎉
 
-### Schritt 2: GitHub Secret hinzufügen
+Mit Trusted Publishers brauchst du **KEINE npm Access Tokens mehr**!
+- ✅ Sicherer (keine Secrets in GitHub)
+- ✅ Automatische Authentifizierung
+- ✅ Provenance Attestation für bessere Sicherheit
 
-1. Gehe zu deinem GitHub Repository: https://github.com/Jonasppxx/vorlage
-2. Klicke auf **Settings** → **Secrets and variables** → **Actions**
-3. Klicke **New repository secret**
-4. Name: `NPM_TOKEN`
-5. Value: (Füge den npm Token ein)
-6. Klicke **Add secret**
-
-### Schritt 3: Code zu GitHub pushen
+### Schritt 2: Code zu GitHub pushen
 
 ```powershell
 # Alle Änderungen committen
@@ -170,9 +162,6 @@ git push --follow-tags
 ---
 
 ## 🚨 Troubleshooting
-
-### "NPM_TOKEN not found"
-→ Stelle sicher, dass du den npm Token als GitHub Secret hinzugefügt hast (Schritt 2)
 
 ### "Version already exists"
 → Erhöhe die Version in `package.json` oder nutze `npm version`

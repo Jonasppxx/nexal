@@ -1,0 +1,16 @@
+{
+  "name": "create-my-next-app",
+  "version": "1.0.1",
+  "description": "Mein eigenes Next.js Starter-Tool",
+  "type": "module",
+  "bin": {
+    "jonas-next-app": "./index.js"
+  },
+  "keywords": [
+    "nextjs",
+    "starter",
+    "template",
+    "create"
+  ],
+  "license": "MIT"
+}

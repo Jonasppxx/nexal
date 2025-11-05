@@ -32,7 +32,8 @@ const filesToCopy = [
   'tailwind.config.ts',
   'postcss.config.mjs',
   '.gitignore',
-  'README.md'
+  'README.md',
+  '.env.example'
 ];
 
 function copyRecursive(src, dest) {

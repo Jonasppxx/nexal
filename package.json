@@ -30,7 +30,8 @@
     "*.config.*",
     "*.json",
     ".gitignore",
-    "README.md"
+    "README.md",
+    ".env.example"
   ],
   "bin": {
     "create-vorlage": "bin/create-vorlage.js"

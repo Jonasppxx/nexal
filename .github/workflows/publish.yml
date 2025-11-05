@@ -8,6 +8,9 @@ on:
       - 'README.md'
       - 'PUBLISHING.md'
       - 'QUICKSTART.md'
+      - 'DEPLOY.md'
+      - 'SETUP-COMPLETE.md'
+      - 'TRUSTED-PUBLISHER.md'
       - '.github/**'
 
 jobs:
@@ -15,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: read
+      contents: write
       id-token: write
     
     steps:
@@ -23,6 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -30,36 +34,49 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
       - name: Install dependencies
         run: npm ci
 
       - name: Run tests (build check)
         run: npm run build
 
-      - name: Check if version changed
+      - name: Check if should publish
         id: check
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           PUBLISHED_VERSION=$(npm view @jonastest/vorlage version 2>/dev/null || echo "0.0.0")
           echo "Current version: $CURRENT_VERSION"
           echo "Published version: $PUBLISHED_VERSION"
-          if [ "$CURRENT_VERSION" != "$PUBLISHED_VERSION" ]; then
-            echo "should_publish=true" >> $GITHUB_OUTPUT
-            echo "Version changed - will publish"
+          
+          # Prüfe ob es Code-Änderungen gibt (nicht nur Docs)
+          if git diff --name-only HEAD~1 HEAD | grep -vE '^(README|.*\.md|\.github)' | grep -q .; then
+            if [ "$CURRENT_VERSION" == "$PUBLISHED_VERSION" ]; then
+              echo "Code changed but version unchanged - will auto-bump"
+              echo "should_bump=true" >> $GITHUB_OUTPUT
+              echo "should_publish=true" >> $GITHUB_OUTPUT
+            else
+              echo "Version already changed - will publish"
+              echo "should_bump=false" >> $GITHUB_OUTPUT
+              echo "should_publish=true" >> $GITHUB_OUTPUT
+            fi
           else
+            echo "Only docs changed - skipping"
+            echo "should_bump=false" >> $GITHUB_OUTPUT
             echo "should_publish=false" >> $GITHUB_OUTPUT
-            echo "Version unchanged - skipping publish"
           fi
+
+      - name: Auto-bump version
+        if: steps.check.outputs.should_bump == 'true'
+        run: |
+          echo "Auto-bumping patch version..."
+          npm version patch -m "chore: auto-bump version to %s [skip ci]"
+          git push --follow-tags
 
       - name: Publish to npm
         if: steps.check.outputs.should_publish == 'true'
         run: npm publish --provenance --access public
-
-      - name: Create Git Tag
-        if: steps.check.outputs.should_publish == 'true'
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin "v$VERSION"

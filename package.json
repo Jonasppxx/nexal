@@ -1,6 +1,6 @@
 {
   "name": "create-my-next-app-jonas",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Generiert ein Next.js Projekt mit App Router und Auth",
   "type": "module",
   "bin": {

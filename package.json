@@ -1,13 +1,21 @@
 {
-  "name": "create-my-next-app-jonas",  
-  "version": "1.0.0",
+  "name": "create-my-next-app-jonas",
+  "version": "1.0.1",
   "description": "Generiert ein Next.js Projekt mit App Router und Auth",
   "type": "module",
   "bin": {
     "create-my-next-app-jonas": "./index.js"
   },
-  "files": ["index.js", "template"],
-  "keywords": ["nextjs", "starter", "app-router", "cli"],
+  "files": [
+    "index.js",
+    "template"
+  ],
+  "keywords": [
+    "nextjs",
+    "starter",
+    "app-router",
+    "cli"
+  ],
   "license": "MIT",
   "author": "Jonas"
 }

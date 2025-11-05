@@ -9,8 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "prisma:studio": "prisma studio"
   },
   "keywords": [
     "nextjs",
@@ -38,7 +37,8 @@
     ".env.example"
   ],
   "bin": {
-    "create-vorlage": "./index.js"
+    "create-vorlage": "index.js",
+    "@jonastest/vorlage": "index.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

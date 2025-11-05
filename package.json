@@ -33,7 +33,7 @@
     "README.md"
   ],
   "bin": {
-    "create-vorlage": "./bin/create-vorlage.js"
+    "create-vorlage": "bin/create-vorlage.js"
   },
   "dependencies": {
     "react": "19.2.0",

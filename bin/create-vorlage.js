@@ -27,6 +27,7 @@ const filesToCopy = [
   'app',
   'public',
   'lib',
+  'src',
   'prisma',
   'package.json',
   'tsconfig.json',

@@ -31,6 +31,7 @@
     "public",
     "bin",
     "lib",
+    "src",
     "prisma",
     "*.config.*",
     "*.json",

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -60,6 +60,7 @@ async function main() {
     const filesToCopy = [
       'src',
       'public',
+      '.env.example',
       'package.json',
       'tsconfig.json',
       'next.config.ts',
@@ -125,13 +126,11 @@ async function main() {
       const pgSchemaDest = path.join(projectPath, 'src/prisma/schema.prisma');
       const pgAuthSrc = path.join(templatePath, 'src/lib/auth.postgresql.ts');
       const pgAuthDest = path.join(projectPath, 'src/lib/auth.ts');
-      const pgEnvSrc = path.join(templatePath, '.env.postgresql');
-      const pgEnvDest = path.join(projectPath, '.env');
 
-      if (fs.existsSync(pgSchemaSrc) && fs.existsSync(pgAuthSrc) && fs.existsSync(pgEnvSrc)) {
+      // Kopiere nur schema + auth für PostgreSQL. Keine .env.postgresql mehr.
+      if (fs.existsSync(pgSchemaSrc) && fs.existsSync(pgAuthSrc)) {
         fs.copyFileSync(pgSchemaSrc, pgSchemaDest);
         fs.copyFileSync(pgAuthSrc, pgAuthDest);
-        fs.copyFileSync(pgEnvSrc, pgEnvDest);
         console.log('  OK: PostgreSQL Dateien kopiert');
       }
     } else {
@@ -139,13 +138,11 @@ async function main() {
       const mongoSchemaDest = path.join(projectPath, 'src/prisma/schema.prisma');
       const mongoAuthSrc = path.join(templatePath, 'src/lib/auth.mongodb.ts');
       const mongoAuthDest = path.join(projectPath, 'src/lib/auth.ts');
-      const mongoEnvSrc = path.join(templatePath, '.env.mongodb');
-      const mongoEnvDest = path.join(projectPath, '.env');
 
-      if (fs.existsSync(mongoSchemaSrc) && fs.existsSync(mongoAuthSrc) && fs.existsSync(mongoEnvSrc)) {
+      // Kopiere nur schema + auth für MongoDB. Keine .env.mongodb mehr.
+      if (fs.existsSync(mongoSchemaSrc) && fs.existsSync(mongoAuthSrc)) {
         fs.copyFileSync(mongoSchemaSrc, mongoSchemaDest);
         fs.copyFileSync(mongoAuthSrc, mongoAuthDest);
-        fs.copyFileSync(mongoEnvSrc, mongoEnvDest);
         console.log('  OK: MongoDB Dateien kopiert');
       }
     }

@@ -37,8 +37,8 @@
     ".env.example"
   ],
   "bin": {
-    "create-vorlage": "node index.js",
-    "vorlage": "node index.js"
+    "create-vorlage": "./index.js",
+    "vorlage": "./index.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

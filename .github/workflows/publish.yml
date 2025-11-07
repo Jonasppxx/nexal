@@ -5,13 +5,9 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'README.md'
-      - 'PUBLISHING.md'
-      - 'QUICKSTART.md'
-      - 'DEPLOY.md'
-      - 'SETUP-COMPLETE.md'
-      - 'TRUSTED-PUBLISHER.md'
+      - '*.md'
       - '.github/**'
+      - '!.github/workflows/publish.yml'
 
 jobs:
   publish:

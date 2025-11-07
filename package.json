@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD
-  "name": "@jonastest/vorlage",
-  "version": "1.0.28",
-=======
   "name": "nexal",
-  "version": "1.0.27",
->>>>>>> 47a2fe0 (Deine Nachricht)
+  "version": "1.0.28",
   "description": "Ein vollständiges Next.js Starter-Template",
   "main": "index.js",
   "scripts": {
@@ -56,9 +51,9 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types-node": "^20",
+    "@types-react": "^19",
+    "@types-react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
     "prisma": "^6.19.0",

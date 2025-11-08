@@ -14,7 +14,7 @@
     "init:admin": "node scripts/init-admin.js",
     "setup:db": "node scripts/setup-database.js",
     "validate:db": "node scripts/validate-db-config.js",
-    "check:prisma": "node -e \"const p=require('./package.json'); const a=(p.dependencies&&p.dependencies['@prisma/client'])||''; const b=(p.devDependencies&&p.devDependencies.prisma)||''; if(a!==b){console.warn('WARN: prisma and @prisma/client versions differ:', b, a); process.exit(1);} else {console.log('OK: Prisma versions match:', a);}}\"",
+    "check:prisma": "node -e \"const p=require('./package.json'); const a=(p.dependencies&&p.dependencies['@prisma/client'])||''; const b=(p.devDependencies&&p.devDependencies.prisma)||''; if(a!==b){console.warn('WARN: prisma and @prisma/client versions differ:', b, a); process.exit(1);} else {console.log('OK: Prisma versions match:', a);}\"",
     "postinstall": "npm run check:prisma"
   },
   "prisma": {

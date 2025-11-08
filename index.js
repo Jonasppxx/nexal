@@ -31,11 +31,6 @@ function writeJsonFile(filePath, obj) {
   ensureDir(path.dirname(filePath));
   fs.writeFileSync(filePath, JSON.stringify(obj, null, 2), 'utf8');
 }
-
-// ============================================================================
-// Template Copy Utilities (from lib/copy-templates.js)
-// ============================================================================
-
 function copyRecursive(src, dest, options = {}) {
   const skipNames = options.skipNames || [];
   try {

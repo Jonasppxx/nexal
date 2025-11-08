@@ -67,6 +67,7 @@ async function main() {
       '.gitignore',
       'README.md',
       'DATABASE_SETUP.md',
+      'DATABASE_CONFIG.md',
     ];
 
     function copyRecursive(src, dest) {

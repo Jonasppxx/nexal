@@ -12,7 +12,8 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "init:admin": "node scripts/init-admin.js",
-    "setup:db": "node scripts/setup-database.js"
+    "setup:db": "node scripts/setup-database.js",
+    "validate:db": "node scripts/validate-db-config.js"
   },
   "keywords": [
     "nextjs",

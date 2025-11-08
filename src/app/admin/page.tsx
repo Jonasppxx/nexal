@@ -26,7 +26,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    if (session.user.role !== 'admin') {
+    if ((session.user as any).role !== 'admin') {
       console.error('Access denied: Not an admin');
       router.push('/');
       return;
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     return <div className="p-4 text-center">Loading...</div>;
   }
 
-  if (session.user.role !== 'admin') {
+  if ((session.user as any).role !== 'admin') {
     return (
       <div className="p-4 text-center text-red-600">
         ❌ Access Denied: You are not an admin
@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 p-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold mb-2 text-gray-800">Admin Dashboard</h1>
         <p className="text-gray-600 mb-8">Manage all users in the system</p>

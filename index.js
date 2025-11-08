@@ -157,12 +157,33 @@ async function main() {
     delete packageJson.files;
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
+    // Install dependencies (can be skipped with --no-install or SKIP_INSTALL=1)
+    const skipInstall = process.argv.includes('--no-install') || process.env.SKIP_INSTALL === '1';
+
     console.log('');
-    console.log('Installiere Dependencies...');
+    if (skipInstall) {
+      console.log('Überspringe Installation der Dependencies (--no-install gesetzt)');
+    } else {
+      console.log('Installiere Dependencies (dies kann einige Minuten dauern)...');
+    }
     console.log('');
 
     process.chdir(projectPath);
-    execSync('npm install', { stdio: 'inherit' });
+
+    if (!skipInstall) {
+      // Use spawnSync to avoid potential interactive hangups and pass safe flags
+      const { spawnSync } = require('child_process');
+      const installArgs = ['install', '--no-audit', '--no-fund'];
+      const res = spawnSync('npm', installArgs, { stdio: 'inherit', shell: true });
+      if (res.error) {
+        console.error('Fehler beim Ausführen von npm install:', res.error);
+        process.exit(1);
+      }
+      if (res.status !== 0) {
+        console.error(`npm install beendet mit Code ${res.status}`);
+        process.exit(res.status || 1);
+      }
+    }
 
     console.log('');
     console.log('Projekt erfolgreich erstellt!');

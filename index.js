@@ -26,7 +26,7 @@ async function main() {
 
     const templatePath = __dirname;
 
-    // Kopiere alle Templates (inkl. prisma/schema.prisma)
+    // Kopiere alle Templates (inkl. prisma/schema.prisma)s
     copyTemplates(templatePath, projectPath);
 
     // package.json anpassen

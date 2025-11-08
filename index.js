@@ -173,16 +173,46 @@ async function main() {
     if (!skipInstall) {
       // Use spawnSync to avoid potential interactive hangups and pass safe flags
       const { spawnSync } = require('child_process');
-      const installArgs = ['install', '--no-audit', '--no-fund'];
-      const res = spawnSync('npm', installArgs, { stdio: 'inherit', shell: true });
+      const installArgs = [
+        'install',
+        '--no-audit',
+        '--no-fund',
+        '--prefer-offline',
+        '--no-scripts'
+      ];
+      
+      console.log('Führe npm install aus (bitte warten)...\n');
+      
+      const res = spawnSync('npm', installArgs, {
+        stdio: 'inherit',
+        shell: false,
+        timeout: 5 * 60 * 1000, // 5 Minuten Timeout
+        env: { ...process.env, npm_config_loglevel: 'warn' }
+      });
+      
       if (res.error) {
-        console.error('Fehler beim Ausführen von npm install:', res.error);
+        if (res.error.code === 'ENOENT') {
+          console.error('\n❌ npm nicht gefunden! Bitte stelle sicher, dass Node.js installiert ist.');
+        } else {
+          console.error('\n❌ Fehler beim Ausführen von npm install:', res.error.message);
+        }
+        console.log('\nTip: Du kannst "npm install" später manuell ausführen oder --no-install nutzen');
         process.exit(1);
       }
-      if (res.status !== 0) {
-        console.error(`npm install beendet mit Code ${res.status}`);
-        process.exit(res.status || 1);
+      
+      if (res.signal === 'SIGTERM') {
+        console.error('\n❌ npm install Timeout (>5 Minuten) - zu lange!');
+        console.log('Tip: Versuche später "npm install --verbose" für mehr Debug-Info');
+        process.exit(1);
       }
+      
+      if (res.status !== 0 && res.status !== null) {
+        console.error(`\n❌ npm install beendet mit Exit-Code ${res.status}`);
+        console.log('Tip: Versuche "npm install --verbose" für mehr Informationen');
+        process.exit(res.status);
+      }
+      
+      console.log('✅ Dependencies erfolgreich installiert!');
     }
 
     console.log('');

@@ -133,7 +133,7 @@ async function main() {
       console.log('  OK: ' + (usePostgres ? 'PostgreSQL' : 'MongoDB') + ' Schema kopiert');
     }
 
-    // Aktualisiere next.config.ts mit dem ausgewählten Provider
+    // Aktualisiere next.config.ts mit dem ausgewählten Providers
     const nextConfigPath = path.join(projectPath, 'next.config.ts');
     if (fs.existsSync(nextConfigPath)) {
       let nextConfigContent = fs.readFileSync(nextConfigPath, 'utf-8');
@@ -157,90 +157,12 @@ async function main() {
     delete packageJson.files;
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
-    // Install dependencies (can be skipped with --no-install or SKIP_INSTALL=1)
-    const skipInstall = process.argv.includes('--no-install') || process.env.SKIP_INSTALL === '1';
-
     console.log('');
-    if (skipInstall) {
-      console.log('Überspringe Installation der Dependencies (--no-install gesetzt)');
-    } else {
-      console.log('Installiere Dependencies (dies kann einige Minuten dauern)...');
-    }
+    console.log('Installiere Dependencies...');
     console.log('');
 
     process.chdir(projectPath);
-
-    if (!skipInstall) {
-      // Use spawnSync to avoid potential interactive hangups and pass safe flags
-      const { spawnSync } = require('child_process');
-      const os = require('os');
-      
-      // First attempt: Try with optimized flags
-      const installArgs = [
-        'install',
-        '--no-audit',
-        '--no-fund',
-        '--prefer-offline',
-        '--ignore-scripts'  // Use --ignore-scripts to skip postinstall initially
-      ];
-      
-      console.log('Führe npm install aus (bitte warten)...\n');
-      
-      // On Windows, use shell: true to access npm via PATH
-      // On other systems, shell: false is more efficient
-      const isWindows = process.platform === 'win32';
-      
-      let res = spawnSync(isWindows ? 'npm.cmd' : 'npm', installArgs, {
-        stdio: 'inherit',
-        shell: isWindows,
-        timeout: 5 * 60 * 1000, // 5 Minuten Timeout
-        env: { 
-          ...process.env, 
-          npm_config_loglevel: 'warn',
-          npm_config_maxsockets: '1'  // Limit parallel downloads
-        }
-      });
-      
-      if (res.error) {
-        if (res.error.code === 'ENOENT') {
-          console.error('\n❌ npm nicht gefunden! Bitte stelle sicher, dass Node.js installiert ist.');
-        } else {
-          console.error('\n❌ Fehler beim Ausführen von npm install:', res.error.message);
-        }
-        console.log('\nTip: Du kannst "npm install" später manuell ausführen oder --no-install nutzen');
-        process.exit(1);
-      }
-      
-      if (res.signal === 'SIGTERM') {
-        console.error('\n❌ npm install Timeout (>5 Minuten) - zu lange!');
-        console.log('Tip: Versuche später "npm install --verbose" für mehr Debug-Info');
-        process.exit(1);
-      }
-      
-      if (res.status !== 0 && res.status !== null) {
-        console.error(`\n⚠️  npm install Fehler - versuche mit Retry...\n`);
-        
-        // Second attempt: Rebuild with postinstall scripts enabled
-        console.log('Starte postinstall scripts...\n');
-        res = spawnSync(isWindows ? 'npm.cmd' : 'npm', ['run', 'prisma:generate'], {
-          stdio: 'inherit',
-          shell: isWindows,
-          timeout: 3 * 60 * 1000,
-          env: { ...process.env, npm_config_loglevel: 'warn' }
-        });
-        
-        if (res.status !== 0 && res.status !== null) {
-          console.error(`\n❌ npm install fehlgeschlagen mit Exit-Code ${res.status}`);
-          console.log('\nLösung: Versuche folgende Befehle manuell:');
-          console.log('  cd ' + projectName);
-          console.log('  npm install --force');
-          console.log('  npm run prisma:generate');
-          process.exit(res.status);
-        }
-      }
-      
-      console.log('\n✅ Dependencies erfolgreich installiert!');
-    }
+    execSync('npm install', { stdio: 'inherit' });
 
     console.log('');
     console.log('Projekt erfolgreich erstellt!');

@@ -173,21 +173,27 @@ async function main() {
     if (!skipInstall) {
       // Use spawnSync to avoid potential interactive hangups and pass safe flags
       const { spawnSync } = require('child_process');
+      
+      // First attempt: Try with optimized flags
       const installArgs = [
         'install',
         '--no-audit',
         '--no-fund',
         '--prefer-offline',
-        '--no-scripts'
+        '--ignore-scripts'  // Use --ignore-scripts to skip postinstall initially
       ];
       
       console.log('Führe npm install aus (bitte warten)...\n');
       
-      const res = spawnSync('npm', installArgs, {
+      let res = spawnSync('npm', installArgs, {
         stdio: 'inherit',
         shell: false,
         timeout: 5 * 60 * 1000, // 5 Minuten Timeout
-        env: { ...process.env, npm_config_loglevel: 'warn' }
+        env: { 
+          ...process.env, 
+          npm_config_loglevel: 'warn',
+          npm_config_maxsockets: '1'  // Limit parallel downloads
+        }
       });
       
       if (res.error) {
@@ -207,12 +213,28 @@ async function main() {
       }
       
       if (res.status !== 0 && res.status !== null) {
-        console.error(`\n❌ npm install beendet mit Exit-Code ${res.status}`);
-        console.log('Tip: Versuche "npm install --verbose" für mehr Informationen');
-        process.exit(res.status);
+        console.error(`\n⚠️  npm install Fehler - versuche mit Retry...\n`);
+        
+        // Second attempt: Rebuild with postinstall scripts enabled
+        console.log('Starte postinstall scripts...\n');
+        res = spawnSync('npm', ['run', 'prisma:generate'], {
+          stdio: 'inherit',
+          shell: false,
+          timeout: 3 * 60 * 1000,
+          env: { ...process.env, npm_config_loglevel: 'warn' }
+        });
+        
+        if (res.status !== 0 && res.status !== null) {
+          console.error(`\n❌ npm install fehlgeschlagen mit Exit-Code ${res.status}`);
+          console.log('\nLösung: Versuche folgende Befehle manuell:');
+          console.log('  cd ' + projectName);
+          console.log('  npm install --force');
+          console.log('  npm run prisma:generate');
+          process.exit(res.status);
+        }
       }
       
-      console.log('✅ Dependencies erfolgreich installiert!');
+      console.log('\n✅ Dependencies erfolgreich installiert!');
     }
 
     console.log('');

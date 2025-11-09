@@ -68,6 +68,8 @@ function copyTemplates(templatePath, projectPath) {
     'DATABASE_SETUP.md',
     'DATABASE_CONFIG.md',
     'ADMIN_SETUP.md',
+    'docker-compose.yml',
+    'Dockerfile',
   ];
 
   // Dateien/Varianten, die wir beim Kopieren standardmäßig überspringen wollen
@@ -166,6 +168,42 @@ async function main() {
 
     process.chdir(projectPath);
 
+    // Ask about MongoDB first: use existing or start docker-compose MongoDB
+    let dbUrl = null;
+    try {
+      const readline = require('readline');
+      const rlDb = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const askDb = (q) => new Promise((resolve) => rlDb.question(q, resolve));
+      const hasDbAns = (await askDb('Hast du bereits eine MongoDB? (j/N): ')).trim().toLowerCase();
+      if (hasDbAns === 'j' || hasDbAns === 'y' || hasDbAns === 'yes') {
+        const provided = (await askDb('DATABASE_URL (z.B. mongodb://user:pass@host:27017/db): ')).trim();
+        if (provided) dbUrl = provided;
+        rlDb.close();
+      } else {
+        rlDb.close();
+        // Start mongodb via docker-compose if available
+        try {
+          console.log('Starting mongodb via docker compose...');
+          let res = spawnSync('docker', ['compose', '-f', 'docker-compose.yml', 'up', '-d', 'mongodb'], { stdio: 'inherit' });
+          if (res.status !== 0) {
+            // fallback to docker-compose
+            res = spawnSync('docker-compose', ['-f', 'docker-compose.yml', 'up', '-d', 'mongodb'], { stdio: 'inherit' });
+          }
+          if (res.status === 0) {
+            // give container time to initialize
+            await new Promise((r) => setTimeout(r, 3000));
+            dbUrl = 'mongodb://admin:admin123@vorlage-mongodb:27017/vorlage?replicaSet=rs0&authSource=admin';
+          } else {
+            console.warn('Could not start mongodb via docker-compose. You can provide a DATABASE_URL manually later.');
+          }
+        } catch (e) {
+          console.warn('Docker compose start failed:', e && e.message ? e.message : e);
+        }
+      }
+    } catch (err) {
+      // ignore prompt errors and continue
+    }
+
     // Create a .env file with a randomized BETTER_AUTH_SECRET if one doesn't already exist.
     try {
       const envPath = path.join(projectPath, '.env');
@@ -203,6 +241,17 @@ async function main() {
           }
         }
 
+        // If user provided a DB URL or docker-compose started DB, ensure DATABASE_URL is set/overwritten
+        if (dbUrl) {
+          if (/^\s*DATABASE_URL\s*=.*$/m.test(updated)) {
+            updated = updated.replace(/^\s*DATABASE_URL\s*=.*$/m, `DATABASE_URL="${dbUrl}"`);
+          } else {
+            if (updated && !updated.endsWith('\n')) updated += '\n';
+            updated += `DATABASE_URL="${dbUrl}"\n`;
+          }
+          changed = true;
+        }
+
         // Ensure BETTER_AUTH_SECRET exists
         if (!/^\s*BETTER_AUTH_SECRET\s*=.*$/m.test(updated)) {
           const secret = crypto.randomBytes(32).toString('base64');
@@ -224,6 +273,16 @@ async function main() {
           contents = fs.readFileSync(examplePath, 'utf8');
         }
 
+        // Ensure DATABASE_URL from prompt/docker is set in new .env
+        if (dbUrl) {
+          if (/^\s*DATABASE_URL\s*=.*$/m.test(contents)) {
+            contents = contents.replace(/^\s*DATABASE_URL\s*=.*$/m, `DATABASE_URL="${dbUrl}"`);
+          } else {
+            if (contents && !contents.endsWith('\n')) contents += '\n';
+            contents += `DATABASE_URL="${dbUrl}"\n`;
+          }
+        }
+
         // Generate a secure random secret (base64) and insert or append it to the .env contents
         const secret = crypto.randomBytes(32).toString('base64');
         const secretLine = `BETTER_AUTH_SECRET="${secret}"`;
@@ -235,8 +294,8 @@ async function main() {
           contents += `${secretLine}\n`;
         }
 
-  fs.writeFileSync(envPath, contents, 'utf8');
-  console.log('.env created');
+        fs.writeFileSync(envPath, contents, 'utf8');
+        console.log('.env created');
       }
     } catch (err) {
       console.warn('Could not create/update .env:', err && err.message ? err.message : err);

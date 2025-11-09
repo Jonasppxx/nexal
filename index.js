@@ -145,12 +145,30 @@ async function main() {
 
   try {
     ensureDir(projectPath);
-  console.log('Copying templates...');
-
+    // Template source directory
     const templatePath = __dirname;
 
-  // copy templates
-  copyTemplates(templatePath, projectPath);
+    // Prioritized copy: ensure docker-compose and Dockerfile exist in the
+    // target project immediately so attempts to run `docker compose` won't
+    // fail due to file-not-found when we ask to start mongodb right after.
+    const prioritized = ['docker-compose.yml', 'Dockerfile'];
+    for (const f of prioritized) {
+      try {
+        const src = path.join(templatePath, f);
+        const dest = path.join(projectPath, f);
+        if (fs.existsSync(src)) {
+          copyFileSync(src, dest);
+          console.log(`Copied ${f} (priority).`);
+        }
+      } catch (e) {
+        console.warn(`Could not copy prioritized file ${f}: ${e && e.message ? e.message : e}`);
+      }
+    }
+
+    console.log('Copying templates...');
+
+    // copy remaining templates
+    copyTemplates(templatePath, projectPath);
   console.log('Templates copied.');
 
     // package.json anpassen

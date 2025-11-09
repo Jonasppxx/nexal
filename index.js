@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-const { execSync, spawnSync } = require('child_process');
+const { execSync, spawnSync, spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -227,21 +227,45 @@ async function main() {
       console.warn('Konnte .env nicht automatisch anlegen/aktualisieren:', err && err.message ? err.message : err);
     }
 
-    execSync('npm install', { stdio: 'inherit' });
-
-    // After installing dependencies, run Prisma generate and db push (if prisma schema exists)
+    // Try to run Prisma generate/db push first. If Prisma CLI (npx) isn't available
+    // because dependencies haven't been installed, run `npm install` and retry.
     try {
       console.log('');
-      console.log('Generiere Prisma Client und wende Schema an...');
-      // generate client
-      execSync('npx prisma generate', { stdio: 'inherit' });
-      // push schema (explicit schema path inside project)
+      console.log('Versuche Prisma Client zu generieren und das Schema anzuwenden...');
+
       const schemaPath = path.join('src', 'prisma', 'schema.prisma');
-      if (fs.existsSync(schemaPath)) {
-        execSync(`npx prisma db push --schema=${schemaPath}`, { stdio: 'inherit' });
-      } else {
-        // try without explicit schema if default setup
-        execSync('npx prisma db push', { stdio: 'inherit' });
+
+      function runPrismaCommands() {
+        execSync('npx prisma generate', { stdio: 'inherit' });
+        if (fs.existsSync(schemaPath)) {
+          execSync(`npx prisma db push --schema=${schemaPath}`, { stdio: 'inherit' });
+        } else {
+          execSync('npx prisma db push', { stdio: 'inherit' });
+        }
+      }
+
+      try {
+        runPrismaCommands();
+      } catch (prismaErr) {
+        console.log('Prisma-CLI oder Abhaengigkeiten evtl. nicht vorhanden. Installiere Abhaengigkeiten und erneut versuchen...');
+        execSync('npm install', { stdio: 'inherit' });
+        // retry
+        try {
+          runPrismaCommands();
+        } catch (prismaErr2) {
+          console.warn('Prisma-Befehle schlugen nach der Installation weiterhin fehl:', prismaErr2 && prismaErr2.message ? prismaErr2.message : prismaErr2);
+        }
+      }
+
+      // Start dev server in background (detached) so we can continue and run the admin script.
+      try {
+        console.log('Starte dev-Server (npm run dev) im Hintergrund...');
+        const dev = spawn('npm', ['run', 'dev'], { stdio: 'ignore', shell: true, detached: true });
+        dev.unref();
+        // give the server a moment to boot so HTTP endpoints may be reachable
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+      } catch (devErr) {
+        console.warn('Fehler beim Starten von npm run dev (im Hintergrund):', devErr && devErr.message ? devErr.message : devErr);
       }
 
       // Prompt for admin credentials and run create-admin-via-api.js in the newly created project
@@ -250,14 +274,12 @@ async function main() {
 
       const ask = (q) => new Promise((resolve) => rl.question(q, resolve));
 
-      (async () => {
-        console.log('');
-        console.log('Optional: Erstelle sofort einen Admin-Benutzer via scripts/create-admin-via-api.js');
-        const email = (await ask('Admin E-Mail (leer = überspringen): ')).trim();
-        if (!email) {
-          rl.close();
-          return;
-        }
+      console.log('');
+      console.log('Optional: Erstelle sofort einen Admin-Benutzer via scripts/create-admin-via-api.js');
+      const email = (await ask('Admin E-Mail (leer = überspringen): ')).trim();
+      if (!email) {
+        rl.close();
+      } else {
         const password = (await ask('Admin Passwort: ')).trim();
         const name = (await ask('Admin Name (optional): ')).trim();
         const baseUrlInput = (await ask('Base URL of running app (optional, default http://localhost:3000): ')).trim();
@@ -267,22 +289,21 @@ async function main() {
         const scriptPath = path.join(projectPath, 'scripts', 'create-admin-via-api.js');
         if (!fs.existsSync(scriptPath)) {
           console.warn(`Skript nicht gefunden: ${scriptPath} — überspringe Admin-Erstellung.`);
-          return;
-        }
-
-        console.log('Starte create-admin-via-api.js mit den angegebenen Parametern...');
-        // Use spawnSync to avoid shell quoting issues and inherit stdio
-        const args = [scriptPath, email, password, name || '', baseUrl];
-        const node = process.execPath; // path to node binary
-        const res = spawnSync(node, args, { stdio: 'inherit' });
-        if (res.error) {
-          console.error('Fehler beim Starten des Admin-Skripts:', res.error.message || res.error);
-        } else if (res.status !== 0) {
-          console.warn('create-admin-via-api.js beendete mit Exit-Code', res.status);
         } else {
-          console.log('Admin-Skript erfolgreich ausgefuehrt.');
+          console.log('Starte create-admin-via-api.js mit den angegebenen Parametern...');
+          // Use spawnSync to avoid shell quoting issues and inherit stdio
+          const args = [scriptPath, email, password, name || '', baseUrl];
+          const node = process.execPath; // path to node binary
+          const res = spawnSync(node, args, { stdio: 'inherit' });
+          if (res.error) {
+            console.error('Fehler beim Starten des Admin-Skripts:', res.error.message || res.error);
+          } else if (res.status !== 0) {
+            console.warn('create-admin-via-api.js beendete mit Exit-Code', res.status);
+          } else {
+            console.log('Admin-Skript erfolgreich ausgefuehrt.');
+          }
         }
-      })();
+      }
     } catch (err) {
       console.warn('Prisma-Schritte u/o Admin-Erstellung schlugen fehl:', err && err.message ? err.message : err);
     }

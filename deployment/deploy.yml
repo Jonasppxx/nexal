@@ -1,0 +1,89 @@
+name: Deploy to Ubuntu Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy with Docker Compose
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GITHUB_CLIENT_ID: ${{ secrets.GITHUB_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@$SERVER_IP << 'ENDSSH'
+            # Create project directory
+            mkdir -p /opt/app
+            cd /opt/app
+            
+            # Stop existing containers
+            if [ -f docker-compose.yml ]; then
+              docker compose down || docker-compose down || true
+            fi
+            
+            # Remove old files
+            rm -rf /opt/app/*
+          ENDSSH
+          
+          # Copy files to server
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r ./* root@$SERVER_IP:/opt/app/
+          
+          # Create .env file on server
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@$SERVER_IP << ENDSSH
+            cd /opt/app
+            
+            cat > .env << 'ENVFILE'
+          DATABASE_URL=$DATABASE_URL
+          BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+          BETTER_AUTH_URL=$BETTER_AUTH_URL
+          NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+          STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY
+          STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET
+          GITHUB_CLIENT_ID=$GITHUB_CLIENT_ID
+          GITHUB_CLIENT_SECRET=$GITHUB_CLIENT_SECRET
+          GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+          GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+          ENVFILE
+            
+            # Start containers
+            docker compose up -d --build || docker-compose up -d --build
+            
+            # Wait for services to be ready
+            sleep 10
+            
+            # Run Prisma migrations
+            docker compose exec -T app npx prisma generate || true
+            docker compose exec -T app npx prisma db push || true
+            
+            # Show running containers
+            docker compose ps || docker-compose ps
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key

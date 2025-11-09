@@ -70,6 +70,9 @@ function copyTemplates(templatePath, projectPath) {
     'ADMIN_SETUP.md',
     'docker-compose.yml',
     'Dockerfile',
+    'upload-env-secrets.ps1',
+    'upload-env-secrets.sh',
+    'deployment/deploy.yml',
   ];
 
   // Dateien/Varianten, die wir beim Kopieren standardmäßig überspringen wollen
@@ -163,6 +166,44 @@ async function main() {
       } catch (e) {
         console.warn(`Could not copy prioritized file ${f}: ${e && e.message ? e.message : e}`);
       }
+    }
+
+    // Copy GitHub Actions workflow from deployment folder to .github/workflows
+    try {
+      const workflowSrc = path.join(templatePath, 'deployment', 'deploy.yml');
+      const workflowDest = path.join(projectPath, '.github', 'workflows', 'deploy.yml');
+      if (fs.existsSync(workflowSrc)) {
+        ensureDir(path.dirname(workflowDest));
+        copyFileSync(workflowSrc, workflowDest);
+        console.log('GitHub Actions workflow created (.github/workflows/deploy.yml)');
+      }
+    } catch (e) {
+      console.warn('Could not copy GitHub workflow:', e && e.message ? e.message : e);
+    }
+
+    // Copy deployment scripts (PowerShell and Bash)
+    try {
+      const psScriptSrc = path.join(templatePath, 'upload-env-secrets.ps1');
+      const psScriptDest = path.join(projectPath, 'upload-env-secrets.ps1');
+      if (fs.existsSync(psScriptSrc)) {
+        copyFileSync(psScriptSrc, psScriptDest);
+        console.log('PowerShell deployment script copied (upload-env-secrets.ps1)');
+      }
+
+      const shScriptSrc = path.join(templatePath, 'upload-env-secrets.sh');
+      const shScriptDest = path.join(projectPath, 'upload-env-secrets.sh');
+      if (fs.existsSync(shScriptSrc)) {
+        copyFileSync(shScriptSrc, shScriptDest);
+        // Make shell script executable
+        try {
+          fs.chmodSync(shScriptDest, 0o755);
+        } catch (e) {
+          // Ignore chmod errors on Windows
+        }
+        console.log('Bash deployment script copied (upload-env-secrets.sh)');
+      }
+    } catch (e) {
+      console.warn('Could not copy deployment scripts:', e && e.message ? e.message : e);
     }
 
     console.log('Copying templates...');
@@ -407,6 +448,28 @@ async function main() {
 
     console.log('Project created.');
     console.log(`Next: cd ${projectName} && npm run dev`);
+    console.log('');
+    console.log('===============================================');
+    console.log('🚀 DEPLOYMENT SETUP');
+    console.log('===============================================');
+    console.log('');
+    console.log('📝 To deploy to Ubuntu server:');
+    console.log('');
+    console.log('1. Install GitHub CLI: https://cli.github.com/');
+    console.log('2. Authenticate: gh auth login');
+    console.log('3. Upload secrets:');
+    if (process.platform === 'win32') {
+      console.log('   .\\upload-env-secrets.ps1');
+    } else {
+      console.log('   ./upload-env-secrets.sh');
+    }
+    console.log('4. Set SERVER_IP and SSH_PRIVATE_KEY:');
+    console.log('   gh secret set SERVER_IP');
+    console.log('   gh secret set SSH_PRIVATE_KEY < ~/.ssh/id_ed25519');
+    console.log('');
+    console.log('5. Push to main branch to trigger deployment');
+    console.log('   git push origin main');
+    console.log('===============================================');
   } catch (error) {
     console.error('Error:', error && error.message ? error.message : error);
     process.exit(1);

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch all users
+    // Fetch all users with their subscriptions
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -37,6 +37,23 @@ export async function GET(request: NextRequest) {
         name: true,
         role: true,
         createdAt: true,
+        subscriptions: {
+          where: {
+            status: { in: ['active', 'trialing', 'past_due'] },
+          },
+          include: {
+            product: {
+              select: {
+                name: true,
+                price: true,
+                currency: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',

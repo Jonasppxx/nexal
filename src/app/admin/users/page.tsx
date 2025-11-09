@@ -8,6 +8,17 @@ interface User {
   name: string | null;
   role: string;
   createdAt: string;
+  subscriptions?: {
+    id: string;
+    status: string;
+    currentPeriodEnd: string;
+    cancelAtPeriodEnd: boolean;
+    product: {
+      name: string;
+      price: number;
+      currency: string;
+    };
+  }[];
 }
 
 export default function UsersPage() {
@@ -99,6 +110,9 @@ export default function UsersPage() {
                     Role
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Subscription
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Created
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -109,7 +123,7 @@ export default function UsersPage() {
               <tbody className="divide-y divide-gray-800">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                       {searchTerm ? 'No users found matching your search' : 'No users found'}
                     </td>
                   </tr>
@@ -132,6 +146,35 @@ export default function UsersPage() {
                         >
                           {user.role}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {user.subscriptions && user.subscriptions.length > 0 ? (
+                          <div className="space-y-1">
+                            {user.subscriptions.map((sub) => (
+                              <div key={sub.id} className="flex items-center gap-2">
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-medium ${
+                                    sub.status === 'active'
+                                      ? 'bg-green-900/50 text-green-300 border border-green-700'
+                                      : sub.status === 'trialing'
+                                      ? 'bg-blue-900/50 text-blue-300 border border-blue-700'
+                                      : 'bg-yellow-900/50 text-yellow-300 border border-yellow-700'
+                                  }`}
+                                >
+                                  {sub.product.name}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {sub.product.price.toFixed(2)} {sub.product.currency.toUpperCase()}/mo
+                                </span>
+                                {sub.cancelAtPeriodEnd && (
+                                  <span className="text-xs text-red-400">(Canceling)</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500 text-xs">No active subscription</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-400">
                         {new Date(user.createdAt).toLocaleDateString()}

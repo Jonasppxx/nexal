@@ -25,6 +25,8 @@ model User {
   posts         Post[]
   sessions      Session[]
   accounts      Account[]
+  purchases     Purchase[]
+  subscriptions Subscription[]
 }
 
 model Session {
@@ -75,4 +77,84 @@ model Post {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Stripe Product Model (now for subscriptions)
+model Product {
+  id                String   @id @default(cuid()) @map("_id")
+  name              String
+  description       String?
+  features          String[] @default([]) // List of features
+  price             Float    // Monthly price
+  currency          String   @default("eur")
+  stripePriceId     String?  @unique
+  stripeProductId   String?  @unique
+  active            Boolean  @default(true)
+  isSubscription    Boolean  @default(true) // true for subscriptions, false for one-time
+  trialPeriodDays   Int?     // Trial period in days
+  billingInterval   String   @default("month") // month, year
+  maxUsers          Int?     // Max users for this plan
+  storageGb         Int?     // Storage in GB
+  highlightFeature  String?  // Main feature to highlight
+  popular           Boolean  @default(false) // Mark as "Most Popular"
+  sortOrder         Int      @default(0) // Display order
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  purchases         Purchase[]
+  subscriptions     Subscription[]
+}
+
+// Purchase/Order Model
+model Purchase {
+  id                String   @id @default(cuid()) @map("_id")
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id])
+  amount            Float
+  currency          String
+  status            String   @default("pending") // pending, completed, failed, refunded
+  stripeSessionId   String?  @unique
+  stripePaymentIntent String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Subscription Model
+model Subscription {
+  id                     String   @id @default(cuid()) @map("_id")
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId              String
+  product                Product  @relation(fields: [productId], references: [id])
+  stripeSubscriptionId   String   @unique
+  stripeCustomerId       String
+  stripePriceId          String
+  status                 String   // active, canceled, past_due, unpaid, incomplete
+  currentPeriodStart     DateTime
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean  @default(false)
+  canceledAt             DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+// Coupon Model
+model Coupon {
+  id                 String   @id @default(cuid()) @map("_id")
+  code               String   @unique
+  stripeCouponId     String?  @unique
+  name               String
+  description        String?
+  discountType       String   // percentage, fixed_amount
+  discountValue      Float    // Percentage (e.g., 20 for 20%) or fixed amount
+  currency           String?  // Only for fixed_amount discounts
+  duration           String   @default("once") // once, repeating, forever
+  durationInMonths   Int?     // Only for repeating duration
+  maxRedemptions     Int?     // Maximum number of times this can be used
+  timesRedeemed      Int      @default(0)
+  active             Boolean  @default(true)
+  expiresAt          DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }

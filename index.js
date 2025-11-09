@@ -3,6 +3,7 @@
 const { execSync, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // ============================================================================
 // File System Utilities (from lib/fs-utils.js)
@@ -149,6 +150,83 @@ async function main() {
     console.log('');
 
     process.chdir(projectPath);
+
+    // Create a .env file with a randomized BETTER_AUTH_SECRET if one doesn't already exist.
+    try {
+      const envPath = path.join(projectPath, '.env');
+      const examplePath = path.join(projectPath, '.env.example');
+
+      function parseEnv(content) {
+        const map = {};
+        if (!content) return map;
+        content.split(/\r?\n/).forEach((line) => {
+          const m = line.match(/^\s*([^#=\s]+)\s*=\s*(.*)$/);
+          if (m) {
+            map[m[1]] = m[2];
+          }
+        });
+        return map;
+      }
+
+      if (fs.existsSync(envPath)) {
+        // Merge missing keys from .env.example into existing .env (do not overwrite existing values)
+        console.log('.env existiert — gleiche fehlende Eintraege aus .env.example ab.');
+        const envContents = fs.readFileSync(envPath, 'utf8');
+        const exampleContents = fs.existsSync(examplePath) ? fs.readFileSync(examplePath, 'utf8') : '';
+
+        const envMap = parseEnv(envContents);
+        const exMap = parseEnv(exampleContents);
+
+        let updated = envContents;
+        let changed = false;
+
+        for (const key of Object.keys(exMap)) {
+          if (!(key in envMap)) {
+            if (updated && !updated.endsWith('\n')) updated += '\n';
+            updated += `${key}=${exMap[key]}\n`;
+            changed = true;
+          }
+        }
+
+        // Ensure BETTER_AUTH_SECRET exists
+        if (!/^\s*BETTER_AUTH_SECRET\s*=.*$/m.test(updated)) {
+          const secret = crypto.randomBytes(32).toString('base64');
+          if (updated && !updated.endsWith('\n')) updated += '\n';
+          updated += `BETTER_AUTH_SECRET="${secret}"\n`;
+          changed = true;
+        }
+
+        if (changed) {
+          fs.writeFileSync(envPath, updated, 'utf8');
+          console.log('Aktualisiert .env: fehlende Keys aus .env.example hinzugefuegt und BETTER_AUTH_SECRET generiert (falls noetig).');
+        } else {
+          console.log('.env bereits komplett — keine Aenderungen notwendig.');
+        }
+      } else {
+        // Create new .env using .env.example as base and add BETTER_AUTH_SECRET
+        let contents = '';
+        if (fs.existsSync(examplePath)) {
+          contents = fs.readFileSync(examplePath, 'utf8');
+        }
+
+        // Generate a secure random secret (base64) and insert or append it to the .env contents
+        const secret = crypto.randomBytes(32).toString('base64');
+        const secretLine = `BETTER_AUTH_SECRET="${secret}"`;
+
+        if (/^\s*BETTER_AUTH_SECRET\s*=.*$/m.test(contents)) {
+          contents = contents.replace(/^\s*BETTER_AUTH_SECRET\s*=.*$/m, secretLine);
+        } else {
+          if (contents && !contents.endsWith('\n')) contents += '\n';
+          contents += `${secretLine}\n`;
+        }
+
+        fs.writeFileSync(envPath, contents, 'utf8');
+        console.log('Erstellt .env mit Inhalten aus .env.example und generiertem BETTER_AUTH_SECRET.');
+      }
+    } catch (err) {
+      console.warn('Konnte .env nicht automatisch anlegen/aktualisieren:', err && err.message ? err.message : err);
+    }
+
     execSync('npm install', { stdio: 'inherit' });
 
     // After installing dependencies, run Prisma generate and db push (if prisma schema exists)

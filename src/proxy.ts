@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Protected routes: Pfade die eine Session benötigen
 const protectedRoutes = [
+  '/admin',
   '/dashboard',
   '/profile',
   '/api/protected',

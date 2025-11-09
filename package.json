@@ -5,11 +5,12 @@
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
-    "prisma:prepare": "prisma generate && prisma db push",
+  "prisma:prepare": "prisma generate --schema src/prisma/schema.prisma && prisma db push --schema src/prisma/schema.prisma",
     "build": "prisma generate --schema src/prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "eslint",
     "init:admin": "node scripts/init-admin.js",
+  "init:admin-api": "node scripts/create-admin-via-api.js",
     "postinstall": "npm run check:prisma"
   },
   "prisma": {

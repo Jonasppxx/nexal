@@ -3,7 +3,7 @@ import { prisma } from '@/src/lib/prisma/prisma';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-08-27.basil',
 });
 
 // GET /api/admin/products - List all products (admin only)
@@ -35,7 +35,15 @@ export async function POST(request: NextRequest) {
     // TODO: Add admin authentication check
 
     const body = await request.json();
-    const { name, description, price, currency = 'eur', active = true, isSubscription = true } = body;
+    const {
+      name,
+      description,
+      price,
+      currency = 'eur',
+      billingInterval = 'month',
+      trialPeriodDays,
+      active = true,
+    } = body;
 
     if (!name || price === undefined) {
       return NextResponse.json(
@@ -50,13 +58,21 @@ export async function POST(request: NextRequest) {
       description: description || undefined,
     });
 
-    // Create price in Stripe (recurring for subscriptions)
-    const stripePrice = await stripe.prices.create({
+    // Create price in Stripe (recurring subscription)
+    const stripePriceData: any = {
       product: stripeProduct.id,
       unit_amount: Math.round(price * 100), // Convert to cents
       currency,
-      recurring: isSubscription ? { interval: 'month' } : undefined,
-    });
+      recurring: {
+        interval: billingInterval, // 'month' or 'year'
+      },
+    };
+
+    if (trialPeriodDays && trialPeriodDays > 0) {
+      stripePriceData.recurring.trial_period_days = trialPeriodDays;
+    }
+
+    const stripePrice = await stripe.prices.create(stripePriceData);
 
     // Create product in database
     const product = await prisma.product.create({
@@ -65,10 +81,11 @@ export async function POST(request: NextRequest) {
         description,
         price,
         currency,
+        billingInterval,
+        trialPeriodDays,
         stripePriceId: stripePrice.id,
         stripeProductId: stripeProduct.id,
         active,
-        isSubscription,
       },
     });
 

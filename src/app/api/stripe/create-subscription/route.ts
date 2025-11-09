@@ -3,12 +3,12 @@ import Stripe from 'stripe';
 import { prisma } from '@/src/lib/prisma/prisma';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-08-27.basil',
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const { productId, userId } = await req.json();
+    const { productId, userId, couponCode } = await req.json();
 
     if (!productId || !userId) {
       return NextResponse.json(
@@ -79,8 +79,39 @@ export async function POST(req: NextRequest) {
       stripeCustomerId = customer.id;
     }
 
+    // Validate coupon if provided
+    let validCoupon = null;
+    if (couponCode) {
+      validCoupon = await prisma.coupon.findUnique({
+        where: { code: couponCode.toUpperCase() },
+      });
+
+      if (!validCoupon || !validCoupon.active) {
+        return NextResponse.json(
+          { error: 'Invalid or inactive coupon code' },
+          { status: 400 }
+        );
+      }
+
+      // Check expiry
+      if (validCoupon.expiresAt && new Date(validCoupon.expiresAt) < new Date()) {
+        return NextResponse.json(
+          { error: 'Coupon has expired' },
+          { status: 400 }
+        );
+      }
+
+      // Check max redemptions
+      if (validCoupon.maxRedemptions && validCoupon.timesRedeemed >= validCoupon.maxRedemptions) {
+        return NextResponse.json(
+          { error: 'Coupon has reached maximum redemptions' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create checkout session for subscription
-    const session = await stripe.checkout.sessions.create({
+    const sessionData: any = {
       customer: stripeCustomerId,
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -96,7 +127,31 @@ export async function POST(req: NextRequest) {
         userId,
         productId,
       },
-    });
+    };
+
+    // Add trial period if product has one
+    if (product.trialPeriodDays && product.trialPeriodDays > 0) {
+      sessionData.subscription_data = {
+        trial_period_days: product.trialPeriodDays,
+      };
+    }
+
+    // Add coupon if validated
+    if (validCoupon && validCoupon.stripeCouponId) {
+      sessionData.discounts = [{
+        coupon: validCoupon.stripeCouponId,
+      }];
+
+      // Update coupon redemption count
+      await prisma.coupon.update({
+        where: { id: validCoupon.id },
+        data: {
+          timesRedeemed: { increment: 1 },
+        },
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionData);
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error) {

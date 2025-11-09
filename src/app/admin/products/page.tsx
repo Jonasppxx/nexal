@@ -8,8 +8,9 @@ interface Product {
   description: string | null;
   price: number;
   currency: string;
+  billingInterval: string;
+  trialPeriodDays: number | null;
   active: boolean;
-  isSubscription: boolean;
   createdAt: string;
 }
 
@@ -23,8 +24,9 @@ export default function ProductsAdminPage() {
     description: '',
     price: '',
     currency: 'eur',
+    billingInterval: 'month',
+    trialPeriodDays: '',
     active: true,
-    isSubscription: true,
   });
 
   useEffect(() => {
@@ -60,8 +62,9 @@ export default function ProductsAdminPage() {
           description: formData.description,
           price: parseFloat(formData.price),
           currency: formData.currency,
+          billingInterval: formData.billingInterval,
+          trialPeriodDays: formData.trialPeriodDays ? parseInt(formData.trialPeriodDays) : null,
           active: formData.active,
-          isSubscription: formData.isSubscription,
         }),
       });
 
@@ -85,8 +88,9 @@ export default function ProductsAdminPage() {
       description: product.description || '',
       price: product.price.toString(),
       currency: product.currency,
+      billingInterval: product.billingInterval,
+      trialPeriodDays: product.trialPeriodDays?.toString() || '',
       active: product.active,
-      isSubscription: product.isSubscription,
     });
     setShowForm(true);
   };
@@ -119,8 +123,9 @@ export default function ProductsAdminPage() {
       description: '',
       price: '',
       currency: 'eur',
+      billingInterval: 'month',
+      trialPeriodDays: '',
       active: true,
-      isSubscription: true,
     });
     setEditingProduct(null);
     setShowForm(false);
@@ -187,7 +192,65 @@ export default function ProductsAdminPage() {
                 <option value="eur">EUR (€)</option>
                 <option value="usd">USD ($)</option>
                 <option value="gbp">GBP (£)</option>
+                <option value="chf">CHF (Fr)</option>
+                <option value="jpy">JPY (¥)</option>
+                <option value="cad">CAD ($)</option>
+                <option value="aud">AUD ($)</option>
+                <option value="nzd">NZD ($)</option>
+                <option value="sek">SEK (kr)</option>
+                <option value="nok">NOK (kr)</option>
+                <option value="dkk">DKK (kr)</option>
+                <option value="pln">PLN (zł)</option>
+                <option value="czk">CZK (Kč)</option>
+                <option value="huf">HUF (Ft)</option>
+                <option value="ron">RON (lei)</option>
+                <option value="bgn">BGN (лв)</option>
+                <option value="hrk">HRK (kn)</option>
+                <option value="rsd">RSD (din)</option>
+                <option value="uah">UAH (₴)</option>
+                <option value="try">TRY (₺)</option>
+                <option value="ils">ILS (₪)</option>
+                <option value="inr">INR (₹)</option>
+                <option value="brl">BRL (R$)</option>
+                <option value="mxn">MXN ($)</option>
+                <option value="ars">ARS ($)</option>
+                <option value="clp">CLP ($)</option>
+                <option value="cop">COP ($)</option>
+                <option value="pen">PEN (S/)</option>
+                <option value="cny">CNY (¥)</option>
+                <option value="hkd">HKD ($)</option>
+                <option value="sgd">SGD ($)</option>
+                <option value="krw">KRW (₩)</option>
+                <option value="thb">THB (฿)</option>
+                <option value="php">PHP (₱)</option>
+                <option value="idr">IDR (Rp)</option>
+                <option value="myr">MYR (RM)</option>
+                <option value="vnd">VND (₫)</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block mb-2 font-medium text-gray-200">Billing Interval</label>
+              <select
+                value={formData.billingInterval}
+                onChange={(e) => setFormData({ ...formData, billingInterval: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-700 text-white"
+              >
+                <option value="month">Monthly</option>
+                <option value="year">Yearly</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block mb-2 font-medium text-gray-200">Trial Period (Days)</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.trialPeriodDays}
+                onChange={(e) => setFormData({ ...formData, trialPeriodDays: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-700 text-white"
+                placeholder="0 (no trial)"
+              />
             </div>
 
             <div className="flex items-center">
@@ -199,18 +262,6 @@ export default function ProductsAdminPage() {
                   className="mr-2"
                 />
                 <span className="font-medium text-gray-200">Active</span>
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.isSubscription}
-                  onChange={(e) => setFormData({ ...formData, isSubscription: e.target.checked })}
-                  className="mr-2"
-                />
-                <span className="font-medium text-gray-200">Subscription (Monthly)</span>
               </label>
             </div>
 

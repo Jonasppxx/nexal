@@ -84,20 +84,13 @@ model Product {
   id                String   @id @default(cuid()) @map("_id")
   name              String
   description       String?
-  features          String[] @default([]) // List of features
-  price             Float    // Monthly price
-  currency          String   @default("eur")
+  price             Float
+  currency          String   @default("eur") // eur, usd, gbp, chf, jpy, cad, aud, nzd, sek, nok, dkk, pln, czk, huf, ron, bgn, hrk, rsd, uah, try, ils, inr, brl, mxn, ars, clp, cop, pen, cny, hkd, sgd, krw, thb, php, idr, myr, vnd
+  billingInterval   String   @default("month") // month, year
+  trialPeriodDays   Int?     // Trial period in days (e.g., 14)
   stripePriceId     String?  @unique
   stripeProductId   String?  @unique
   active            Boolean  @default(true)
-  isSubscription    Boolean  @default(true) // true for subscriptions, false for one-time
-  trialPeriodDays   Int?     // Trial period in days
-  billingInterval   String   @default("month") // month, year
-  maxUsers          Int?     // Max users for this plan
-  storageGb         Int?     // Storage in GB
-  highlightFeature  String?  // Main feature to highlight
-  popular           Boolean  @default(false) // Mark as "Most Popular"
-  sortOrder         Int      @default(0) // Display order
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   purchases         Purchase[]

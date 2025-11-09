@@ -13,8 +13,9 @@ interface Product {
   description: string | null;
   price: number;
   currency: string;
+  billingInterval: string;
+  trialPeriodDays: number | null;
   active: boolean;
-  isSubscription: boolean;
 }
 
 export default function SubscribePage() {
@@ -22,6 +23,8 @@ export default function SubscribePage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [couponCode, setCouponCode] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
 
   useEffect(() => {
     if (isPending) return;
@@ -37,11 +40,11 @@ export default function SubscribePage() {
     try {
       const res = await fetch('/api/products');
       const data = await res.json();
-      // Filter only subscription products
-      const subscriptionProducts = (data.products || []).filter(
-        (p: Product) => p.isSubscription
+      // All products are now subscriptions, just filter active ones
+      const activeProducts = (data.products || []).filter(
+        (p: Product) => p.active
       );
-      setProducts(subscriptionProducts);
+      setProducts(activeProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -49,7 +52,7 @@ export default function SubscribePage() {
     }
   };
 
-  const handleSubscribe = async (productId: string) => {
+  const handleSubscribe = async (productId: string, appliedCoupon?: string) => {
     try {
       const stripe = await stripePromise;
       if (!stripe) {
@@ -63,6 +66,7 @@ export default function SubscribePage() {
         body: JSON.stringify({
           productId,
           userId: session?.user?.id,
+          couponCode: appliedCoupon || undefined,
         }),
       });
 
@@ -120,21 +124,61 @@ export default function SubscribePage() {
               >
                 <h2 className="text-2xl font-bold text-white mb-4">{product.name}</h2>
                 
+                {product.trialPeriodDays && product.trialPeriodDays > 0 && (
+                  <div className="mb-4 px-3 py-1 bg-green-600/20 border border-green-600 rounded-full text-green-400 text-sm text-center">
+                    🎁 {product.trialPeriodDays} days free trial
+                  </div>
+                )}
+                
                 <div className="mb-6">
                   <span className="text-4xl font-bold text-white">
                     {product.price.toFixed(2)}
                   </span>
                   <span className="text-gray-400 ml-2">
-                    {product.currency.toUpperCase()} / month
+                    {product.currency.toUpperCase()} / {product.billingInterval === 'year' ? 'year' : 'month'}
                   </span>
                 </div>
 
                 {product.description && (
-                  <p className="text-gray-300 mb-8">{product.description}</p>
+                  <p className="text-gray-300 mb-6">{product.description}</p>
+                )}
+
+                {/* Coupon Code Input */}
+                {selectedProduct === product.id ? (
+                  <div className="mb-4">
+                    <label className="block text-sm text-gray-400 mb-2">
+                      Have a coupon code?
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="COUPON CODE"
+                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-500 uppercase"
+                      />
+                      <button
+                        onClick={() => {
+                          setSelectedProduct(null);
+                          setCouponCode('');
+                        }}
+                        className="px-3 py-2 bg-gray-700 text-gray-400 rounded hover:bg-gray-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setSelectedProduct(product.id)}
+                    className="w-full mb-3 text-sm text-blue-400 hover:text-blue-300"
+                  >
+                    + Add coupon code
+                  </button>
                 )}
 
                 <button
-                  onClick={() => handleSubscribe(product.id)}
+                  onClick={() => handleSubscribe(product.id, selectedProduct === product.id ? couponCode : undefined)}
                   className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
                 >
                   Subscribe Now
